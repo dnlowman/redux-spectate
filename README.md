@@ -1,2 +1,3 @@
 # redux-spectate
-An example of spectating other users of your redux app.
+WIP!
+A super hacky example of spectating other users of your redux app.

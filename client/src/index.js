@@ -1,9 +1,23 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { createStore } from 'redux'
+import { createStore, combineReducers, compose, applyMiddleware } from 'redux';
+import { Provider } from 'react-redux';
 import { createDevTools } from 'redux-devtools';
 import LogMonitor from 'redux-devtools-log-monitor';
 import DockMonitor from 'redux-devtools-dock-monitor';
+import spectate from './Middleware/spectate';
+import exampleFormReducer from './ExampleFormContainer/reducer';
+import ExampleFormContainer from './ExampleFormContainer';
+import { client, subscribe } from './socketClient';
+
+subscribe((action) => {
+    let state = store.getState();
+
+    if(state.exampleForm && state.exampleForm.listening === true)
+        store.dispatch(JSON.parse(action));
+    else
+        console.log("You're not listening");
+});
 
 const DevTools = createDevTools(
     <DockMonitor toggleVisibilityKey='ctrl-h'
@@ -13,34 +27,22 @@ const DevTools = createDevTools(
     </DockMonitor>
 );
 
-function reducer(state = {}, action) {
-    switch (action.type) {
-        case 'TEXT_CHANGE': {
-            return Object.assign({}, state, {
-                text: action.payload.text
-            });
-        }
+const reducer = combineReducers({
+    exampleForm: exampleFormReducer
+});
 
-        default:
-            return state
-    }
-}
+let store = createStore(reducer, compose(
+    applyMiddleware(spectate),
+    DevTools.instrument()
+));
 
-let store = createStore(reducer, DevTools.instrument());
-
-const onTextChange = (event) => {
-    store.dispatch({
-        type: 'TEXT_CHANGE',
-        payload: {
-            text: event.target.value
-        }
-    });
-};
 
 ReactDOM.render(
-    <div>
-        <DevTools store={store} />
-        <input type="text" onChange={onTextChange} />
-    </div>,
+    <Provider store={store}>
+        <div>
+            <DevTools />
+            <ExampleFormContainer />
+        </div>
+    </Provider>,
     document.getElementById('react-container')
 );
